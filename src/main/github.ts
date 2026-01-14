@@ -187,20 +187,61 @@ export class GitHubManager {
       }
     })()
 
-    const commitPromises = repos.slice(0, 3).map(async (repo) => {
+    const eventsPromise = (async () => {
       try {
-        const { stdout } = await execAsync(`${gh} api repos/${repo.nameWithOwner}/commits --per_page 1`)
-        const commits = JSON.parse(stdout)
-        return commits.map((c) => ({
-          message: c.commit.message,
-          date: c.commit.author.date,
-          repo: repo.name,
-          author: c.commit.author.name
-        }))
+        const [userEventsStdout, receivedEventsStdout] = await Promise.all([
+          execAsync(`${gh} api "users/${user.login}/events/public?per_page=20"`).then((r) => r.stdout),
+          execAsync(`${gh} api "users/${user.login}/received_events?per_page=20"`).then((r) => r.stdout)
+        ])
+
+        const userEvents = JSON.parse(userEventsStdout)
+        const receivedEvents = JSON.parse(receivedEventsStdout)
+
+        const allEvents = [...(Array.isArray(userEvents) ? userEvents : []), ...(Array.isArray(receivedEvents) ? receivedEvents : [])]
+
+        // Deduplicate by ID and sort by date
+        const uniqueEvents = Array.from(new Map(allEvents.map(item => [item.id, item])).values())
+
+        return uniqueEvents
+          .map((e) => {
+            let message = ''
+            const repoName = e.repo.name.split('/').pop() || e.repo.name
+
+            switch (e.type) {
+              case 'PushEvent':
+                message = e.payload.commits?.[0]?.message || `Pushed to ${e.payload.ref.replace('refs/heads/', '')}`
+                break
+              case 'PullRequestEvent':
+                message = `${e.payload.action.charAt(0).toUpperCase() + e.payload.action.slice(1)} PR: ${e.payload.pull_request.title}`
+                break
+              case 'IssuesEvent':
+                message = `${e.payload.action.charAt(0).toUpperCase() + e.payload.action.slice(1)} Issue: ${e.payload.issue.title}`
+                break
+              case 'CreateEvent':
+                message = `Created ${e.payload.ref_type}${e.payload.ref ? ` ${e.payload.ref}` : ''}`
+                break
+              case 'DeleteEvent':
+                message = `Deleted ${e.payload.ref_type} ${e.payload.ref}`
+                break
+              case 'WatchEvent':
+                message = 'Starred repository'
+                break
+              default:
+                message = e.type.replace('Event', '')
+            }
+
+            return {
+              message,
+              date: e.created_at,
+              repo: repoName,
+              author: e.actor.display_login || e.actor.login
+            }
+          })
+          .filter((e) => e.message)
       } catch {
         return []
       }
-    })
+    })()
 
     const alertsPromises = repos.slice(0, 3).map(async (repo) => {
       try {
@@ -220,10 +261,10 @@ export class GitHubManager {
       }
     })
 
-    const [runsResults, prs, commitsResults, alertsResults, totalIssues] = await Promise.all([
+    const [runsResults, prs, events, alertsResults, totalIssues] = await Promise.all([
       Promise.all(runPromises),
       prPromise,
-      Promise.all(commitPromises),
+      eventsPromise,
       Promise.all(alertsPromises),
       issuesPromise
     ])
@@ -231,9 +272,9 @@ export class GitHubManager {
     stats.runs = runsResults.flat()
     stats.prs = prs
     stats.totalIssues = totalIssues
-    stats.commits = commitsResults
-      .flat()
+    stats.commits = events
       .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 10)
     stats.alerts = alertsResults.flat()
 
     return stats
