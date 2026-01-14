@@ -101,7 +101,7 @@ export class GitHubManager {
   async listRepos(limit: number = 30): Promise<any[]> {
     const gh = await this.getGhPath()
     const { stdout } = await execAsync(
-      `${gh} repo list --json name,description,url,stargazerCount,updatedAt,visibility --limit ${limit}`
+      `${gh} repo list --json name,nameWithOwner,description,url,stargazerCount,updatedAt,visibility,primaryLanguage --limit ${limit}`
     )
     return JSON.parse(stdout)
   }
@@ -125,7 +125,7 @@ export class GitHubManager {
     const runPromises = repos.slice(0, 3).map(async (repo) => {
       try {
         const { stdout } = await execAsync(
-          `${gh} run list -R ${repo.name} --limit 1 --json status,conclusion,workflowName,createdAt,url`
+          `${gh} run list -R ${repo.nameWithOwner} --limit 1 --json status,conclusion,workflowName,createdAt,url`
         )
         const runs = JSON.parse(stdout)
         return runs.map((r) => ({ ...r, repo: repo.name }))
@@ -145,9 +145,9 @@ export class GitHubManager {
       }
     })()
 
-    const commitPromise = repos.slice(0, 3).map(async (repo) => {
+    const commitPromises = repos.slice(0, 3).map(async (repo) => {
       try {
-        const { stdout } = await execAsync(`${gh} api repos/${repo.name}/commits --per_page 1`)
+        const { stdout } = await execAsync(`${gh} api repos/${repo.nameWithOwner}/commits --per_page 1`)
         const commits = JSON.parse(stdout)
         return commits.map((c) => ({
           message: c.commit.message,
@@ -160,12 +160,13 @@ export class GitHubManager {
       }
     })
 
-    const alertsPromise = repos.slice(0, 3).map(async (repo) => {
+    const alertsPromises = repos.slice(0, 3).map(async (repo) => {
       try {
         const { stdout } = await execAsync(
-          `${gh} api repos/${repo.name}/dependabot/alerts --per_page 5`
+          `${gh} api repos/${repo.nameWithOwner}/dependabot/alerts --per_page 5`
         )
         const alerts = JSON.parse(stdout)
+        if (!Array.isArray(alerts)) return []
         return alerts.map((a) => ({
           summary: a.security_advisory.summary,
           severity: a.security_advisory.severity,
@@ -180,8 +181,8 @@ export class GitHubManager {
     const [runsResults, prs, commitsResults, alertsResults] = await Promise.all([
       Promise.all(runPromises),
       prPromise,
-      Promise.all(commitPromise),
-      Promise.all(alertsPromise)
+      Promise.all(commitPromises),
+      Promise.all(alertsPromises)
     ])
 
     stats.runs = runsResults.flat()
@@ -194,3 +195,4 @@ export class GitHubManager {
     return stats
   }
 }
+
