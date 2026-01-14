@@ -6,6 +6,8 @@ const execAsync = promisify(exec)
 
 export interface GitHubStats {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  user: any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   runs: any[]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   prs: any[]
@@ -15,6 +17,9 @@ export interface GitHubStats {
   commits: any[]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   repos: any[]
+  totalStars: number
+  totalIssues: number
+  totalRepos: number
 }
 
 export class GitHubManager {
@@ -101,31 +106,54 @@ export class GitHubManager {
   async listRepos(limit: number = 30): Promise<any[]> {
     const gh = await this.getGhPath()
     const { stdout } = await execAsync(
-      `${gh} repo list --json name,description,url,stargazerCount,updatedAt,visibility --limit ${limit}`
+      `${gh} repo list --json name,nameWithOwner,description,url,stargazerCount,updatedAt,visibility,primaryLanguage --limit ${limit}`
     )
     return JSON.parse(stdout)
   }
 
   async getDashboardStats(): Promise<GitHubStats> {
     const gh = await this.getGhPath()
-    const repos = await this.listRepos(5)
 
-    if (repos.length === 0) {
-      return { runs: [], prs: [], alerts: [], commits: [], repos: [] }
+    // 1. Fetch User Info, Repos Sample (for stars/listing), and Total Count
+    // We fetch 100 repos to get a more accurate star count without too much overhead
+    const [userStdout, allRepos] = await Promise.all([
+      execAsync(`${gh} api user`).then((r) => r.stdout),
+      this.listRepos(100)
+    ])
+
+    const userRaw = JSON.parse(userStdout)
+    const user = {
+      ...userRaw,
+      public_repos: Number(userRaw.public_repos) || 0,
+      total_private_repos: Number(userRaw.total_private_repos || userRaw.owned_private_repos) || 0
     }
 
+    // Calculate total repos from user data for accuracy
+    const totalRepos = user.public_repos + user.total_private_repos
+
+    // Get top 5 repos for the dashboard display
+    const repos = allRepos.slice(0, 5)
+
+    // Sum stars from the fetched repos (up to 100)
+    const totalStars = allRepos.reduce((acc, r) => acc + (r.stargazerCount || 0), 0)
+
     const stats: GitHubStats = {
+      user: user,
       runs: [],
       prs: [],
       alerts: [],
       commits: [],
-      repos: repos
+      repos: repos,
+      totalStars,
+      totalIssues: 0,
+      totalRepos
     }
 
+    // 2. Fetch specific items in parallel
     const runPromises = repos.slice(0, 3).map(async (repo) => {
       try {
         const { stdout } = await execAsync(
-          `${gh} run list -R ${repo.name} --limit 1 --json status,conclusion,workflowName,createdAt,url`
+          `${gh} run list -R ${repo.nameWithOwner} --limit 1 --json status,conclusion,workflowName,createdAt,url`
         )
         const runs = JSON.parse(stdout)
         return runs.map((r) => ({ ...r, repo: repo.name }))
@@ -136,8 +164,9 @@ export class GitHubManager {
 
     const prPromise = (async () => {
       try {
+        // Search for PRs where the user is involved (created, assigned, or mentioned)
         const { stdout } = await execAsync(
-          `${gh} search prs --review-requested=@me --state=open --limit 5 --json title,repository,url,createdAt`
+          `${gh} search prs --involves=@me --state=open --limit 10 --json title,repository,url,createdAt`
         )
         return JSON.parse(stdout)
       } catch {
@@ -145,9 +174,22 @@ export class GitHubManager {
       }
     })()
 
-    const commitPromise = repos.slice(0, 3).map(async (repo) => {
+    const issuesPromise = (async () => {
       try {
-        const { stdout } = await execAsync(`${gh} api repos/${repo.name}/commits --per_page 1`)
+        // Search for issues where the user is involved (created, assigned, or mentioned)
+        const { stdout } = await execAsync(
+          `${gh} search issues --involves=@me --state=open --json title,url`
+        )
+        const issues = JSON.parse(stdout)
+        return issues.length
+      } catch {
+        return 0
+      }
+    })()
+
+    const commitPromises = repos.slice(0, 3).map(async (repo) => {
+      try {
+        const { stdout } = await execAsync(`${gh} api repos/${repo.nameWithOwner}/commits --per_page 1`)
         const commits = JSON.parse(stdout)
         return commits.map((c) => ({
           message: c.commit.message,
@@ -160,12 +202,13 @@ export class GitHubManager {
       }
     })
 
-    const alertsPromise = repos.slice(0, 3).map(async (repo) => {
+    const alertsPromises = repos.slice(0, 3).map(async (repo) => {
       try {
         const { stdout } = await execAsync(
-          `${gh} api repos/${repo.name}/dependabot/alerts --per_page 5`
+          `${gh} api repos/${repo.nameWithOwner}/dependabot/alerts --per_page 5`
         )
         const alerts = JSON.parse(stdout)
+        if (!Array.isArray(alerts)) return []
         return alerts.map((a) => ({
           summary: a.security_advisory.summary,
           severity: a.security_advisory.severity,
@@ -177,15 +220,17 @@ export class GitHubManager {
       }
     })
 
-    const [runsResults, prs, commitsResults, alertsResults] = await Promise.all([
+    const [runsResults, prs, commitsResults, alertsResults, totalIssues] = await Promise.all([
       Promise.all(runPromises),
       prPromise,
-      Promise.all(commitPromise),
-      Promise.all(alertsPromise)
+      Promise.all(commitPromises),
+      Promise.all(alertsPromises),
+      issuesPromise
     ])
 
     stats.runs = runsResults.flat()
     stats.prs = prs
+    stats.totalIssues = totalIssues
     stats.commits = commitsResults
       .flat()
       .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -194,3 +239,5 @@ export class GitHubManager {
     return stats
   }
 }
+
+
