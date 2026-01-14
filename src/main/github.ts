@@ -212,10 +212,10 @@ export class GitHubManager {
                 message = e.payload.commits?.[0]?.message || `Pushed to ${e.payload.ref.replace('refs/heads/', '')}`
                 break
               case 'PullRequestEvent':
-                message = `${e.payload.action.charAt(0).toUpperCase() + e.payload.action.slice(1)} PR: ${e.payload.pull_request.title}`
+                message = `${e.payload.action.charAt(0).toUpperCase() + e.payload.action.slice(1)} PR ${e.payload.pull_request.title || '#' + e.payload.pull_request.number}`
                 break
               case 'IssuesEvent':
-                message = `${e.payload.action.charAt(0).toUpperCase() + e.payload.action.slice(1)} Issue: ${e.payload.issue.title}`
+                message = `${e.payload.action.charAt(0).toUpperCase() + e.payload.action.slice(1)} Issue ${e.payload.issue.title || '#' + e.payload.issue.number}`
                 break
               case 'CreateEvent':
                 message = `Created ${e.payload.ref_type}${e.payload.ref ? ` ${e.payload.ref}` : ''}`
