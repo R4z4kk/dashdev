@@ -81,8 +81,12 @@ app.whenReady().then(() => {
     return await ssh.execCommand(host, port, username, keyName, command)
   })
 
-  ipcMain.handle('network:scan', async () => {
-    return await scanner.scan()
+  ipcMain.handle('network:scan', async (_, target) => {
+    return await scanner.scan(target)
+  })
+
+  ipcMain.handle('network:getInterfaces', async () => {
+    return scanner.getInterfaces()
   })
 
   ipcMain.handle('github:repos', async (_, limit) => {
