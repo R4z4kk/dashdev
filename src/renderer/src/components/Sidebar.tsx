@@ -25,9 +25,6 @@ export function Sidebar() {
 
   return (
     <div className="w-64 border-r bg-card h-screen p-4 flex flex-col">
-      <div className="mb-8 px-4 text-2xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-        Dashdev
-      </div>
       <nav className="space-y-2">
         {items.map((item) => {
           const Icon = item.icon
