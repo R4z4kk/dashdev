@@ -63,8 +63,8 @@ export class SSHManager {
   async deleteKey(name: string): Promise<void> {
     try {
       const keyPath = join(this.keyDir, name)
-      await unlink(keyPath).catch(() => {})
-      await unlink(`${keyPath}.pub`).catch(() => {})
+      await unlink(keyPath).catch(() => { })
+      await unlink(`${keyPath}.pub`).catch(() => { })
     } catch (error) {
       console.error('Delete failed', error)
       throw error
@@ -111,6 +111,34 @@ export class SSHManager {
     } catch (error: any) {
       // Return stderr/message if it fails, so frontend sees the error output
       return error.stderr || error.message
+    }
+  }
+
+  async copyToRemote(
+    host: string,
+    port: string,
+    username: string,
+    keyName: string,
+    localPath: string,
+    remotePath: string
+  ): Promise<void> {
+    const keyPath = join(this.keyDir, keyName).replace(/\\/g, '/')
+
+    // Safety check for key existence
+    try {
+      await readFile(keyPath)
+    } catch {
+      throw new Error(`Private key "${keyName}" not found.`)
+    }
+
+    // specific scp options
+    // -r: recursive
+    const scpCmd = `scp -i "${keyPath}" -P ${port} -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 -r "${localPath}" ${username}@${host}:"${remotePath}"`
+
+    try {
+      await execAsync(scpCmd)
+    } catch (error: any) {
+      throw new Error(`SCP failed: ${error.stderr || error.message}`)
     }
   }
 }

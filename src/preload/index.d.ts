@@ -37,6 +37,20 @@ declare global {
         isLogged: () => Promise<boolean>
         login: () => Promise<void>
         stats: () => Promise<any>
+        getEnvironments: (repoName: string) => Promise<string[]>
+      }
+      deployment: {
+        deploy: (config: {
+          repoName: string
+          server: {
+            host: string
+            port: string
+            username: string
+            keyName: string
+          }
+          command?: string
+          environment?: string
+        }) => Promise<string>
       }
     }
   }

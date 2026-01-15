@@ -7,7 +7,7 @@ import { Star, ExternalLink, Rocket, X } from 'lucide-react'
 interface DeployModalProps {
   repoName: string
   onClose: () => void
-  onDeploy: (server: any, key: string, command: string) => Promise<void>
+  onDeploy: (server: any, key: string, command: string, environment?: string) => Promise<void>
 }
 
 function DeployModal({ repoName, onClose, onDeploy }: DeployModalProps) {
@@ -18,10 +18,13 @@ function DeployModal({ repoName, onClose, onDeploy }: DeployModalProps) {
     const s = JSON.parse(localStorage.getItem('dashdev_servers') || '[]')
     return s.length > 0 ? s[0].id : ''
   })
-  const [command, setCommand] = useState(
-    'cd /var/www/app && git pull && npm install && npm run build && pm2 restart app'
-  )
+  // const [command, setCommand] = useState(
+  //   'cd /var/www/app && git pull && npm install && npm run build && pm2 restart app'
+  // )
+  const [command, setCommand] = useState('docker compose up -d')
   const [loading, setLoading] = useState(false)
+  const [environments, setEnvironments] = useState<string[]>([])
+  const [selectedEnv, setSelectedEnv] = useState<string>('')
 
   // Auto-select first server if none selected
   useEffect(() => {
@@ -31,13 +34,27 @@ function DeployModal({ repoName, onClose, onDeploy }: DeployModalProps) {
     }
   }, [servers, selectedServer])
 
+  // Fetch environments
+  useEffect(() => {
+    const fetchEnvs = async () => {
+      try {
+        const envs = await window.api.github.getEnvironments(repoName)
+        setEnvironments(envs)
+        if (envs.length > 0) setSelectedEnv(envs[0])
+      } catch (e) {
+        console.error('Failed to fetch environments', e)
+      }
+    }
+    fetchEnvs()
+  }, [repoName])
+
   const handleDeploy = async () => {
     setLoading(true)
     const s = servers.find((srv) => srv.id === selectedServer)
     if (!s) return
 
     // Use the key associated with the server
-    await onDeploy(s, s.keyName || '', command)
+    await onDeploy(s, s.keyName || '', command, selectedEnv)
     setLoading(false)
     onClose()
   }
@@ -69,6 +86,23 @@ function DeployModal({ repoName, onClose, onDeploy }: DeployModalProps) {
               ))}
             </select>
           </div>
+
+          {environments.length > 0 && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Environment</label>
+              <select
+                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={selectedEnv}
+                onChange={(e) => setSelectedEnv(e.target.value)}
+              >
+                {environments.map((env) => (
+                  <option key={env} value={env}>
+                    {env}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Launch Command</label>
@@ -109,7 +143,12 @@ export function Repos() {
     loadRepos()
   }, [])
 
-  const handleDeployAction = async (server: any, key: string, command: string) => {
+  const handleDeployAction = async (
+    server: any,
+    key: string,
+    command: string,
+    environment?: string
+  ) => {
     if (!deployRepo) return
 
     // Create record
@@ -119,6 +158,7 @@ export function Repos() {
       repo: deployRepo,
       server: server.name || server.host,
       command: command,
+      environment: environment || '',
       status: 'pending',
       output: '',
       timestamp: new Date().toISOString()
@@ -131,17 +171,17 @@ export function Repos() {
     }
 
     try {
-      const output = await window.api.ssh.exec(
-        server.host,
-        server.port,
-        server.username,
-        key,
-        command
-      )
-      // Check if output implies error? usually exit code is better but exec returns stdout/stderr string.
-      // We'll assume if exec throws it's error, if it returns string it's "success" (even if stderr is content, often warnings).
-      // But ssh.ts returns stdout || stderr.
-      // We will mark as success for now.
+      const output = await window.api.deployment.deploy({
+        repoName: deployRepo,
+        server: {
+          host: server.host,
+          port: server.port,
+          username: server.username,
+          keyName: key
+        },
+        command,
+        environment
+      })
 
       save({ ...record, status: 'success', output })
       alert('Deployment finished successfully!')
@@ -210,7 +250,7 @@ export function Repos() {
                   <ExternalLink className="w-3 h-3 mr-2" />
                   View
                 </Button>
-                <Button size="sm" className="flex-1" onClick={() => setDeployRepo(repo.name)}>
+                <Button size="sm" className="flex-1" onClick={() => setDeployRepo(repo.nameWithOwner)}>
                   <Rocket className="w-3 h-3 mr-2" />
                   Deploy
                 </Button>

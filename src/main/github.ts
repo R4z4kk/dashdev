@@ -284,6 +284,24 @@ export class GitHubManager {
       .slice(0, 10)
     stats.alerts = alertsResults.flat()
 
+    stats.alerts = alertsResults.flat()
+
     return stats
+  }
+
+  async getRepoEnvironments(repoNameWithOwner: string): Promise<string[]> {
+    const gh = await this.getGhPath()
+    try {
+      const { stdout } = await execAsync(`${gh} api repos/${repoNameWithOwner}/environments`)
+      const envs = JSON.parse(stdout)
+      // API returns structured object { environments: [{ name: "..." }, ...] }
+      if (envs && Array.isArray(envs.environments)) {
+        return envs.environments.map((e: any) => e.name)
+      }
+      return []
+    } catch (e) {
+      console.error('Failed to fetch environments', e)
+      return []
+    }
   }
 }

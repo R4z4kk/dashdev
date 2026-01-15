@@ -21,7 +21,11 @@ const api = {
     install: () => ipcRenderer.invoke('github:install'),
     isLogged: () => ipcRenderer.invoke('github:isLogged'),
     login: () => ipcRenderer.invoke('github:login'),
-    stats: () => ipcRenderer.invoke('github:stats')
+    stats: () => ipcRenderer.invoke('github:stats'),
+    getEnvironments: (repoName: string) => ipcRenderer.invoke('github:environments', repoName)
+  },
+  deployment: {
+    deploy: (config: any) => ipcRenderer.invoke('deployment:deploy', config)
   }
 }
 
