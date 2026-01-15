@@ -96,8 +96,15 @@ export function Dashboard() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={loadStats} disabled={loading} className="gap-2">
-            <Activity className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> {loading ? 'Refreshing...' : 'Refresh'}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={loadStats}
+            disabled={loading}
+            className="gap-2"
+          >
+            <Activity className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />{' '}
+            {loading ? 'Refreshing...' : 'Refresh'}
           </Button>
           <div className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-500/10 text-green-600 border border-green-500/20 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
@@ -147,7 +154,9 @@ export function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {runs.length === 0 && <p className="text-xs italic text-muted-foreground">Monitoring 0 failing runs.</p>}
+                {runs.length === 0 && (
+                  <p className="text-xs italic text-muted-foreground">Monitoring 0 failing runs.</p>
+                )}
                 {runs.map((run: any) => (
                   <div key={run.url} className="flex items-center justify-between text-xs group">
                     <div className="flex items-center gap-2 overflow-hidden">
@@ -158,9 +167,16 @@ export function Dashboard() {
                       ) : (
                         <Clock className="w-3.5 h-3.5 text-yellow-500 shrink-0" />
                       )}
-                      <span className="truncate font-medium opacity-90">{run.repo}: {run.workflowName}</span>
+                      <span className="truncate font-medium opacity-90">
+                        {run.repo}: {run.workflowName}
+                      </span>
                     </div>
-                    <a href={run.url} target="_blank" rel="noreferrer" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <a
+                      href={run.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
                       <ExternalLink className="w-3 h-3" />
                     </a>
                   </div>
@@ -177,13 +193,20 @@ export function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {prs.length === 0 && <p className="text-xs italic text-muted-foreground">You are all caught up!</p>}
+                {prs.length === 0 && (
+                  <p className="text-xs italic text-muted-foreground">You are all caught up!</p>
+                )}
                 {prs.map((pr: any) => (
                   <div
                     key={pr.url}
                     className="text-xs truncate text-muted-foreground hover:text-foreground flex items-center gap-1"
                   >
-                    <a href={pr.url} target="_blank" rel="noreferrer" className="truncate hover:underline">
+                    <a
+                      href={pr.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="truncate hover:underline"
+                    >
                       • {pr.title}
                     </a>
                   </div>
@@ -200,17 +223,34 @@ export function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {alerts.length === 0 && <p className="text-xs italic text-muted-foreground">All repositories are secure.</p>}
+                {alerts.length === 0 && (
+                  <p className="text-xs italic text-muted-foreground">
+                    All repositories are secure.
+                  </p>
+                )}
                 {alerts.slice(0, 4).map((alert: any, idx: number) => (
-                  <div key={idx} className="text-xs flex flex-col gap-0.5 border-b border-border/50 pb-2 last:border-0 last:pb-0">
+                  <div
+                    key={idx}
+                    className="text-xs flex flex-col gap-0.5 border-b border-border/50 pb-2 last:border-0 last:pb-0"
+                  >
                     <div className="flex justify-between items-center">
-                      <span className={`font-bold px-1.5 py-0.5 rounded text-[9px] uppercase ${alert.severity === 'critical' ? 'bg-red-500 text-white' : 'bg-orange-500/10 text-orange-600'
-                        }`}>
+                      <span
+                        className={`font-bold px-1.5 py-0.5 rounded text-[9px] uppercase ${
+                          alert.severity === 'critical'
+                            ? 'bg-red-500 text-white'
+                            : 'bg-orange-500/10 text-orange-600'
+                        }`}
+                      >
                         {alert.severity}
                       </span>
                       <span className="text-[10px] text-muted-foreground">{alert.repo}</span>
                     </div>
-                    <a href={alert.url} target="_blank" rel="noreferrer" className="truncate hover:underline text-foreground/80 leading-snug">
+                    <a
+                      href={alert.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="truncate hover:underline text-foreground/80 leading-snug"
+                    >
                       {alert.summary}
                     </a>
                   </div>
@@ -229,12 +269,17 @@ export function Dashboard() {
             <CardContent className="p-0">
               <div className="divide-y divide-border/40">
                 {recentCommits.map((c: any, i: number) => (
-                  <div key={i} className="px-6 py-4 flex items-start gap-4 hover:bg-secondary/5 transition-colors">
+                  <div
+                    key={i}
+                    className="px-6 py-4 flex items-start gap-4 hover:bg-secondary/5 transition-colors"
+                  >
                     <div className="mt-1 w-2 h-2 rounded-full bg-primary/40 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium line-clamp-1">{c.message}</p>
                       <div className="flex items-center gap-3 mt-1.5">
-                        <span className="text-[11px] font-mono text-primary bg-primary/5 px-2 py-0.5 rounded italic">{c.repo}</span>
+                        <span className="text-[11px] font-mono text-primary bg-primary/5 px-2 py-0.5 rounded italic">
+                          {c.repo}
+                        </span>
                         <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                           <Users className="w-3 h-3" /> {c.author}
                         </span>
@@ -253,4 +298,3 @@ export function Dashboard() {
     </div>
   )
 }
-

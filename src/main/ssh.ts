@@ -99,7 +99,8 @@ export class SSHManager {
     // Construct SSH command
     // -o StrictHostKeyChecking=no: Auto-accept host keys (dev mode convenience)
     // -o BatchMode=yes: Disable interaction (password prompts etc)
-    const sshCmd = `ssh -i "${keyPath}" -p ${port} -o StrictHostKeyChecking=no -o BatchMode=yes ${username}@${host} "${command.replace(
+    // -o ConnectTimeout=10: Fail fast if network is down
+    const sshCmd = `ssh -i "${keyPath}" -p ${port} -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 ${username}@${host} "${command.replace(
       /"/g,
       '\\"'
     )}"`

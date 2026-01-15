@@ -2,6 +2,7 @@ import { HashRouter, Routes, Route } from 'react-router-dom'
 import { Layout } from './Layout'
 import { Dashboard } from './pages/Dashboard'
 import { Servers } from './pages/Servers'
+import { ServerDetails } from './pages/ServerDetails'
 import { Repos } from './pages/Repos'
 import { Settings } from './pages/Settings'
 import { SSHKeys } from './pages/SSHKeys'
@@ -38,6 +39,7 @@ function App() {
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
           <Route path="servers" element={<Servers />} />
+          <Route path="servers/:id" element={<ServerDetails />} />
           <Route path="ssh-keys" element={<SSHKeys />} />
           <Route path="scan" element={<NetworkScan />} />
           <Route path="deployments" element={<Deployments />} />

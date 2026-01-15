@@ -5,17 +5,16 @@ import { existsSync } from 'fs'
 const execAsync = promisify(exec)
 
 export interface GitHubStats {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   user: any
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   runs: any[]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   prs: any[]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   alerts: any[]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   commits: any[]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   repos: any[]
   totalStars: number
   totalIssues: number
@@ -102,7 +101,6 @@ export class GitHubManager {
     })
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async listRepos(limit: number = 30): Promise<any[]> {
     const gh = await this.getGhPath()
     const { stdout } = await execAsync(
@@ -190,17 +188,24 @@ export class GitHubManager {
     const eventsPromise = (async () => {
       try {
         const [userEventsStdout, receivedEventsStdout] = await Promise.all([
-          execAsync(`${gh} api "users/${user.login}/events/public?per_page=20"`).then((r) => r.stdout),
-          execAsync(`${gh} api "users/${user.login}/received_events?per_page=20"`).then((r) => r.stdout)
+          execAsync(`${gh} api "users/${user.login}/events/public?per_page=20"`).then(
+            (r) => r.stdout
+          ),
+          execAsync(`${gh} api "users/${user.login}/received_events?per_page=20"`).then(
+            (r) => r.stdout
+          )
         ])
 
         const userEvents = JSON.parse(userEventsStdout)
         const receivedEvents = JSON.parse(receivedEventsStdout)
 
-        const allEvents = [...(Array.isArray(userEvents) ? userEvents : []), ...(Array.isArray(receivedEvents) ? receivedEvents : [])]
+        const allEvents = [
+          ...(Array.isArray(userEvents) ? userEvents : []),
+          ...(Array.isArray(receivedEvents) ? receivedEvents : [])
+        ]
 
         // Deduplicate by ID and sort by date
-        const uniqueEvents = Array.from(new Map(allEvents.map(item => [item.id, item])).values())
+        const uniqueEvents = Array.from(new Map(allEvents.map((item) => [item.id, item])).values())
 
         return uniqueEvents
           .map((e) => {
@@ -209,7 +214,9 @@ export class GitHubManager {
 
             switch (e.type) {
               case 'PushEvent':
-                message = e.payload.commits?.[0]?.message || `Pushed to ${e.payload.ref.replace('refs/heads/', '')}`
+                message =
+                  e.payload.commits?.[0]?.message ||
+                  `Pushed to ${e.payload.ref.replace('refs/heads/', '')}`
                 break
               case 'PullRequestEvent':
                 message = `${e.payload.action.charAt(0).toUpperCase() + e.payload.action.slice(1)} PR ${e.payload.pull_request.title || '#' + e.payload.pull_request.number}`
@@ -280,5 +287,3 @@ export class GitHubManager {
     return stats
   }
 }
-
-
