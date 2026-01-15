@@ -18,40 +18,60 @@ DashDev is a powerful Electron-based dashboard designed to streamline your devel
 - **Deployment History**: specific log of all deployment attempts, tracking both successes and failures.
 - **Customizable UI**: Personalize your experience with Light/Dark mode and custom primary colors.
 
-## Prerequisites
 
-Before you begin, ensure you have the following installed:
+## Installation (For Users)
 
-- **Node.js** (Latest LTS recommended)
-- **GitHub CLI (`gh`)**: This application requires the GitHub CLI for authentication and repository operations.
-  - [Installation Guide for GitHub CLI](https://cli.github.com/manual/installation)
-  - After installation, run `gh auth login` in your terminal to authenticate.
+If you just want to use the application, you can build the executable for your operating system.
 
-## Installation
+### Prerequisites
+- **Node.js** (Latest LTS)
+- **GitHub CLI (`gh`)**: Required for authentication.
+  - [Install GitHub CLI](https://cli.github.com/manual/installation)
+  - Run `gh auth login` setup.
 
-1.  **Clone the repository:**
+### Build & Run
+First, clone the repository and install dependencies:
+```bash
+git clone https://github.com/your-username/dashdev.git
+cd dashdev
+npm install
+```
+
+Then, generate the application for your system:
+
+#### Windows
+```bash
+npm run build:win
+```
+The executable will be available in the `dist` folder.
+
+#### macOS
+```bash
+npm run build:mac
+```
+The `.dmg` or `.app` file will be available in the `dist` folder.
+
+#### Linux
+```bash
+npm run build:linux
+```
+The AppImage or package will be available in the `dist` folder.
+
+## Installation (For Developers)
+
+If you want to contribute or modify the code, follow these steps to set up the development environment with hot-reloading.
+
+1.  **Clone & Install** (if not done already):
     ```bash
     git clone https://github.com/your-username/dashdev.git
     cd dashdev
-    ```
-
-2.  **Install dependencies:**
-    ```bash
     npm install
     ```
 
-3.  **Run the application (Development mode):**
+2.  **Start Development Server**:
     ```bash
     npm run dev
     ```
-
-## Building for Production
-
-To build the application for your specific operating system:
-
-- **Windows:** `npm run build:win`
-- **macOS:** `npm run build:mac`
-- **Linux:** `npm run build:linux`
 
 ## Usage Guide
 
