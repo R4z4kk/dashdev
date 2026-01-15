@@ -18,7 +18,7 @@ interface Server {
 export function Servers() {
   const [servers, setServers] = useState<Server[]>(() => {
     const saved = localStorage.getItem('dashdev_servers')
-    return saved ? JSON.parse(saved) : []
+    return saved ? (JSON.parse(saved) as Server[]) : []
   })
 
   const location = useLocation()
@@ -26,7 +26,7 @@ export function Servers() {
 
   // Initialize state from navigation if available
   const [newServer, setNewServer] = useState<Partial<Server>>(() => {
-    const s = location.state as { host?: string; port?: string } | null
+    const s = (location.state as { host?: string; port?: string } | null) || null
     return {
       name: '',
       host: s?.host || '',

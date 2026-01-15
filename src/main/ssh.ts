@@ -108,9 +108,10 @@ export class SSHManager {
     try {
       const { stdout, stderr } = await execAsync(sshCmd)
       return stdout || stderr
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Return stderr/message if it fails, so frontend sees the error output
-      return error.stderr || error.message
+      const err = error as { stderr?: string; message?: string }
+      return err.stderr || err.message || 'Unknown error'
     }
   }
 
@@ -137,8 +138,9 @@ export class SSHManager {
 
     try {
       await execAsync(scpCmd)
-    } catch (error: any) {
-      throw new Error(`SCP failed: ${error.stderr || error.message}`)
+    } catch (error: unknown) {
+      const err = error as { stderr?: string; message?: string }
+      throw new Error(`SCP failed: ${err.stderr || err.message || 'Unknown error'}`)
     }
   }
 }

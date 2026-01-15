@@ -55,17 +55,18 @@ export class DeploymentManager {
       console.log('Fetching environment variables...')
       const allVars: Record<string, string> = {}
 
-      const fetchVars = async (cmd: string) => {
+      const fetchVars = async (cmd: string): Promise<void> => {
         try {
           const { stdout } = await execAsync(cmd, { cwd: tempDir })
           const variables = JSON.parse(stdout)
           if (Array.isArray(variables)) {
-            variables.forEach((v: any) => {
+            variables.forEach((v: { name: string; value: string }) => {
               allVars[v.name] = v.value
             })
           }
-        } catch (e: any) {
-          console.warn(`Failed to fetch variables via ${cmd}:`, e.message)
+        } catch (e: unknown) {
+          const errorMsg = e instanceof Error ? e.message : String(e)
+          console.warn(`Failed to fetch variables via ${cmd}:`, errorMsg)
         }
       }
 
@@ -133,7 +134,7 @@ export class DeploymentManager {
       // 2. scp `tempDir` to `deployments/`.
       // 3. On remote: `rm -rf deployments/${shortName} && mv deployments/${basename(tempDir)} deployments/${shortName}`
 
-      const tempDirName = tempDir.split('/').pop()! // repo-timestamp
+      const tempDirName = tempDir.split(/[/\\]/).pop()! // repo-timestamp
       await this.ssh.execCommand(
         server.host,
         server.port,
@@ -167,9 +168,10 @@ export class DeploymentManager {
       )
 
       return result
-    } catch (error: any) {
-      console.error('Deployment failed', error)
-      throw new Error(`Deployment failed: ${error.message}`)
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      console.error('Deployment failed', errorMsg)
+      throw new Error(`Deployment failed: ${errorMsg}`)
     } finally {
       // Cleanup temp
       await rm(tempDir, { recursive: true, force: true }).catch(() => {})

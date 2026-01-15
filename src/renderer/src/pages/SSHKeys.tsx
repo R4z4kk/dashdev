@@ -12,7 +12,7 @@ export function SSHKeys() {
     try {
       const k = await window.api.ssh.list()
       setKeys(k)
-    } catch (e) {
+    } catch (e: unknown) {
       console.error(e)
     }
   }
@@ -28,7 +28,7 @@ export function SSHKeys() {
       await window.api.ssh.generate(newKeyName, 'user@dashdev.local')
       await loadKeys()
       setNewKeyName('')
-    } catch (e) {
+    } catch (e: unknown) {
       console.error(e)
     }
   }
@@ -39,7 +39,7 @@ export function SSHKeys() {
       await navigator.clipboard.writeText(pubKey)
       // Visual feedback could be added here (toast)
       alert(`Public key for ${name} copied to clipboard!`)
-    } catch (e) {
+    } catch (e: unknown) {
       console.error('Copy failed', e)
       alert('Failed to copy key')
     }
@@ -50,7 +50,7 @@ export function SSHKeys() {
     try {
       await window.api.ssh.delete(name)
       await loadKeys()
-    } catch (e) {
+    } catch (e: unknown) {
       console.error(e)
       alert('Failed to delete key')
     }

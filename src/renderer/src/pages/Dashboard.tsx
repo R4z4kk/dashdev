@@ -16,10 +16,17 @@ import {
 import { Button } from '../components/ui/button'
 import { GitHubAuth } from '../components/GitHubAuth'
 import { motion } from 'framer-motion'
+import {
+  GitHubStats,
+  GitHubWorkflowRun,
+  GitHubPullRequest,
+  GitHubAlert,
+  GitHubCommit
+} from '../../../main/types'
 
 export function Dashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [stats, setStats] = useState<any>(null)
+  const [stats, setStats] = useState<GitHubStats | null>(null)
   const [loading, setLoading] = useState(false)
 
   // Initial check
@@ -38,7 +45,7 @@ export function Dashboard() {
     try {
       const data = await window.api.github.stats()
       setStats(data)
-    } catch (e) {
+    } catch (e: unknown) {
       console.error(e)
     } finally {
       setLoading(false)
@@ -48,7 +55,7 @@ export function Dashboard() {
   if (!isAuthenticated) {
     return (
       <div className="animate-in fade-in duration-500">
-        <GitHubAuth onAuthenticated={() => setIsAuthenticated(true)} />
+        <GitHubAuth onStatusChange={(user) => setIsAuthenticated(!!user)} />
       </div>
     )
   }
@@ -157,7 +164,7 @@ export function Dashboard() {
                 {runs.length === 0 && (
                   <p className="text-xs italic text-muted-foreground">Monitoring 0 failing runs.</p>
                 )}
-                {runs.map((run: any) => (
+                {runs.map((run: GitHubWorkflowRun) => (
                   <div key={run.url} className="flex items-center justify-between text-xs group">
                     <div className="flex items-center gap-2 overflow-hidden">
                       {run.conclusion === 'success' ? (
@@ -196,7 +203,7 @@ export function Dashboard() {
                 {prs.length === 0 && (
                   <p className="text-xs italic text-muted-foreground">You are all caught up!</p>
                 )}
-                {prs.map((pr: any) => (
+                {prs.map((pr: GitHubPullRequest) => (
                   <div
                     key={pr.url}
                     className="text-xs truncate text-muted-foreground hover:text-foreground flex items-center gap-1"
@@ -228,7 +235,7 @@ export function Dashboard() {
                     All repositories are secure.
                   </p>
                 )}
-                {alerts.slice(0, 4).map((alert: any, idx: number) => (
+                {alerts.slice(0, 4).map((alert: GitHubAlert, idx: number) => (
                   <div
                     key={idx}
                     className="text-xs flex flex-col gap-0.5 border-b border-border/50 pb-2 last:border-0 last:pb-0"
@@ -268,7 +275,7 @@ export function Dashboard() {
           <Card>
             <CardContent className="p-0">
               <div className="divide-y divide-border/40">
-                {recentCommits.map((c: any, i: number) => (
+                {recentCommits.map((c: GitHubCommit, i: number) => (
                   <div
                     key={i}
                     className="px-6 py-4 flex items-start gap-4 hover:bg-secondary/5 transition-colors"

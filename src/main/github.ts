@@ -1,24 +1,36 @@
 import { exec, spawn } from 'child_process'
 import { promisify } from 'util'
 import { existsSync } from 'fs'
+import {
+  GitHubUser,
+  GitHubRepo,
+  GitHubWorkflowRun,
+  GitHubPullRequest,
+  GitHubCommit,
+  GitHubStats
+} from './types'
 
 const execAsync = promisify(exec)
 
-export interface GitHubStats {
-  user: any
+interface RawGitHubEvent {
+  id: string
+  type: string
+  created_at: string
+  repo: { name: string }
+  actor: { login: string; display_login?: string }
+  payload: {
+    action?: string
+    ref?: string
+    ref_type?: string
+    commits?: Array<{ message: string }>
+    pull_request?: { title: string; number: number }
+    issue?: { title: string; number: number }
+  }
+}
 
-  runs: any[]
-
-  prs: any[]
-
-  alerts: any[]
-
-  commits: any[]
-
-  repos: any[]
-  totalStars: number
-  totalIssues: number
-  totalRepos: number
+interface RawGitHubAlert {
+  security_advisory: { summary: string; severity: string }
+  html_url: string
 }
 
 export class GitHubManager {
@@ -101,7 +113,7 @@ export class GitHubManager {
     })
   }
 
-  async listRepos(limit: number = 30): Promise<any[]> {
+  async listRepos(limit: number = 30): Promise<GitHubRepo[]> {
     const gh = await this.getGhPath()
     const { stdout } = await execAsync(
       `${gh} repo list --json name,nameWithOwner,description,url,stargazerCount,updatedAt,visibility,primaryLanguage --limit ${limit}`
@@ -120,7 +132,7 @@ export class GitHubManager {
     ])
 
     const userRaw = JSON.parse(userStdout)
-    const user = {
+    const user: GitHubUser = {
       ...userRaw,
       public_repos: Number(userRaw.public_repos) || 0,
       total_private_repos: Number(userRaw.total_private_repos || userRaw.owned_private_repos) || 0
@@ -153,14 +165,14 @@ export class GitHubManager {
         const { stdout } = await execAsync(
           `${gh} run list -R ${repo.nameWithOwner} --limit 1 --json status,conclusion,workflowName,createdAt,url`
         )
-        const runs = JSON.parse(stdout)
+        const runs = JSON.parse(stdout) as GitHubWorkflowRun[]
         return runs.map((r) => ({ ...r, repo: repo.name }))
       } catch {
         return []
       }
     })
 
-    const prPromise = (async () => {
+    const prPromise = (async (): Promise<GitHubPullRequest[]> => {
       try {
         // Search for PRs where the user is involved (created, assigned, or mentioned)
         const { stdout } = await execAsync(
@@ -172,20 +184,20 @@ export class GitHubManager {
       }
     })()
 
-    const issuesPromise = (async () => {
+    const issuesPromise = (async (): Promise<number> => {
       try {
         // Search for issues where the user is involved (created, assigned, or mentioned)
         const { stdout } = await execAsync(
           `${gh} search issues --involves=@me --state=open --json title,url`
         )
         const issues = JSON.parse(stdout)
-        return issues.length
+        return Array.isArray(issues) ? issues.length : 0
       } catch {
         return 0
       }
     })()
 
-    const eventsPromise = (async () => {
+    const eventsPromise = (async (): Promise<GitHubCommit[]> => {
       try {
         const [userEventsStdout, receivedEventsStdout] = await Promise.all([
           execAsync(`${gh} api "users/${user.login}/events/public?per_page=20"`).then(
@@ -205,7 +217,9 @@ export class GitHubManager {
         ]
 
         // Deduplicate by ID and sort by date
-        const uniqueEvents = Array.from(new Map(allEvents.map((item) => [item.id, item])).values())
+        const uniqueEvents = Array.from(
+          new Map((allEvents as RawGitHubEvent[]).map((item) => [item.id, item])).values()
+        )
 
         return uniqueEvents
           .map((e) => {
@@ -216,13 +230,17 @@ export class GitHubManager {
               case 'PushEvent':
                 message =
                   e.payload.commits?.[0]?.message ||
-                  `Pushed to ${e.payload.ref.replace('refs/heads/', '')}`
+                  `Pushed to ${e.payload.ref?.replace('refs/heads/', '') || 'unknown branch'}`
                 break
               case 'PullRequestEvent':
-                message = `${e.payload.action.charAt(0).toUpperCase() + e.payload.action.slice(1)} PR ${e.payload.pull_request.title || '#' + e.payload.pull_request.number}`
+                message = e.payload.pull_request
+                  ? `${(e.payload.action || 'opened').charAt(0).toUpperCase() + (e.payload.action || 'opened').slice(1)} PR ${e.payload.pull_request.title || '#' + e.payload.pull_request.number}`
+                  : 'PR interaction'
                 break
               case 'IssuesEvent':
-                message = `${e.payload.action.charAt(0).toUpperCase() + e.payload.action.slice(1)} Issue ${e.payload.issue.title || '#' + e.payload.issue.number}`
+                message = e.payload.issue
+                  ? `${(e.payload.action || 'opened').charAt(0).toUpperCase() + (e.payload.action || 'opened').slice(1)} Issue ${e.payload.issue.title || '#' + e.payload.issue.number}`
+                  : 'Issue interaction'
                 break
               case 'CreateEvent':
                 message = `Created ${e.payload.ref_type}${e.payload.ref ? ` ${e.payload.ref}` : ''}`
@@ -257,7 +275,7 @@ export class GitHubManager {
         )
         const alerts = JSON.parse(stdout)
         if (!Array.isArray(alerts)) return []
-        return alerts.map((a) => ({
+        return alerts.map((a: RawGitHubAlert) => ({
           summary: a.security_advisory.summary,
           severity: a.security_advisory.severity,
           repo: repo.name,
@@ -280,7 +298,7 @@ export class GitHubManager {
     stats.prs = prs
     stats.totalIssues = totalIssues
     stats.commits = events
-      .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 10)
     stats.alerts = alertsResults.flat()
 
@@ -296,7 +314,7 @@ export class GitHubManager {
       const envs = JSON.parse(stdout)
       // API returns structured object { environments: [{ name: "..." }, ...] }
       if (envs && Array.isArray(envs.environments)) {
-        return envs.environments.map((e: any) => e.name)
+        return envs.environments.map((e: { name: string }) => e.name)
       }
       return []
     } catch (e) {

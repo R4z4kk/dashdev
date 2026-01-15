@@ -3,15 +3,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Star, ExternalLink, Rocket, X } from 'lucide-react'
+import { GitHubRepo } from '../../../main/types'
+
+interface Server {
+  id: string
+  name: string
+  host: string
+  port: string
+  username: string
+  keyName: string
+}
 
 interface DeployModalProps {
   repoName: string
   onClose: () => void
-  onDeploy: (server: any, key: string, command: string, environment?: string) => Promise<void>
+  onDeploy: (server: Server, key: string, command: string, environment?: string) => Promise<void>
 }
 
 function DeployModal({ repoName, onClose, onDeploy }: DeployModalProps) {
-  const [servers] = useState<any[]>(() => {
+  const [servers] = useState<Server[]>(() => {
     return JSON.parse(localStorage.getItem('dashdev_servers') || '[]')
   })
   const [selectedServer, setSelectedServer] = useState(() => {
@@ -115,7 +125,7 @@ function DeployModal({ repoName, onClose, onDeploy }: DeployModalProps) {
               value={selectedServer}
               onChange={(e) => setSelectedServer(e.target.value)}
             >
-              {servers.map((s) => (
+              {servers.map((s: Server) => (
                 <option key={s.id} value={s.id}>
                   {s.name} ({s.host})
                 </option>
@@ -180,7 +190,7 @@ function DeployModal({ repoName, onClose, onDeploy }: DeployModalProps) {
 }
 
 export function Repos() {
-  const [repos, setRepos] = useState<any[]>([])
+  const [repos, setRepos] = useState<GitHubRepo[]>([])
   const [search, setSearch] = useState('')
   const [deployRepo, setDeployRepo] = useState<string | null>(null)
 
@@ -197,7 +207,7 @@ export function Repos() {
   }, [])
 
   const handleDeployAction = async (
-    server: any,
+    server: Server,
     key: string,
     command: string,
     environment?: string
@@ -218,7 +228,16 @@ export function Repos() {
     }
 
     // Optimistic save
-    const save = (r: any) => {
+    const save = (r: {
+      id: string
+      repo: string
+      server: string
+      command: string
+      environment: string
+      status: string
+      output: string
+      timestamp: string
+    }) => {
       const list = JSON.parse(localStorage.getItem('dashdev_deployments') || '[]')
       localStorage.setItem('dashdev_deployments', JSON.stringify([...list, r]))
     }
@@ -238,8 +257,9 @@ export function Repos() {
 
       save({ ...record, status: 'success', output })
       alert('Deployment finished successfully!')
-    } catch (e: any) {
-      save({ ...record, status: 'failed', output: e.message || String(e) })
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e)
+      save({ ...record, status: 'failed', output: message })
       alert('Deployment failed. Check Deployments tab.')
     }
   }
@@ -268,7 +288,7 @@ export function Repos() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((repo) => (
+        {filtered.map((repo: GitHubRepo) => (
           <Card key={repo.name} className="flex flex-col">
             <CardHeader>
               <CardTitle className="flex justify-between items-start gap-2">

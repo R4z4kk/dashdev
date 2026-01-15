@@ -2,15 +2,17 @@ import { useState, useEffect, useCallback } from 'react'
 import { Button } from './ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { AlertTriangle, Download, LogIn, CheckCircle2, Loader2 } from 'lucide-react'
+import { GitHubUser, GitHubStats } from '../../../main/types'
 
 interface GitHubAuthProps {
-  onAuthenticated: () => void
+  onStatusChange?: (user: GitHubUser | null) => void
 }
 
-export function GitHubAuth({ onAuthenticated }: GitHubAuthProps) {
+export function GitHubAuth({ onStatusChange }: GitHubAuthProps) {
   const [status, setStatus] = useState<'checking' | 'missing' | 'installed' | 'authenticated'>(
     'checking'
   )
+  const [user, setUser] = useState<GitHubUser | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -25,15 +27,19 @@ export function GitHubAuth({ onAuthenticated }: GitHubAuthProps) {
       const logged = await window.api.github.isLogged()
       if (logged) {
         setStatus('authenticated')
-        onAuthenticated()
+        const stats: GitHubStats = await window.api.github.stats()
+        setUser(stats.user)
+        onStatusChange?.(stats.user)
       } else {
         setStatus('installed')
+        setUser(null)
+        onStatusChange?.(null)
       }
     } catch (e) {
       console.error(e)
       setStatus('missing')
     }
-  }, [onAuthenticated])
+  }, [onStatusChange])
 
   useEffect(() => {
     checkStatus()
@@ -46,8 +52,9 @@ export function GitHubAuth({ onAuthenticated }: GitHubAuthProps) {
       await window.api.github.install()
       // Re-check after install
       await checkStatus()
-    } catch (e: any) {
-      setError(e.message || 'Installation failed')
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e)
+      setError(message || 'Installation failed')
     } finally {
       setLoading(false)
     }
@@ -64,7 +71,10 @@ export function GitHubAuth({ onAuthenticated }: GitHubAuthProps) {
         if (logged) {
           clearInterval(interval)
           setStatus('authenticated')
-          onAuthenticated()
+          // Fetch user and notify
+          const stats: GitHubStats = await window.api.github.stats()
+          setUser(stats.user)
+          onStatusChange?.(stats.user)
           setLoading(false)
         }
       }, 2000)
@@ -74,8 +84,9 @@ export function GitHubAuth({ onAuthenticated }: GitHubAuthProps) {
         clearInterval(interval)
         if (status !== 'authenticated') setLoading(false)
       }, 120000)
-    } catch (e: any) {
-      setError(e.message || 'Login failed')
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e)
+      setError(message || 'Login failed')
       setLoading(false)
     }
   }
@@ -93,11 +104,17 @@ export function GitHubAuth({ onAuthenticated }: GitHubAuthProps) {
       <Card className="w-[450px]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <CheckCircle2 className="h-6 w-6 text-primary" />
+            {user ? (
+              <img src={user.avatar_url} className="h-6 w-6 rounded-full" alt="" />
+            ) : (
+              <CheckCircle2 className="h-6 w-6 text-primary" />
+            )}
             GitHub Integration
           </CardTitle>
           <CardDescription>
-            Dashdev requires GitHub CLI to fetch your repository stats.
+            {user
+              ? `Logged in as ${user.login}`
+              : 'Dashdev requires GitHub CLI to fetch your repository stats.'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

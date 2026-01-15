@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Server as ServerIcon, RefreshCw, Plus } from 'lucide-react'
+import { NetworkInterface, ScanResult } from '../../../main/types'
 
 export function NetworkScan() {
-  const [networkHosts, setNetworkHosts] = useState<any[]>([])
+  const [networkHosts, setNetworkHosts] = useState<ScanResult[]>([])
   const [isScanning, setIsScanning] = useState(false)
-  const [interfaces, setInterfaces] = useState<any[]>([])
+  const [interfaces, setInterfaces] = useState<NetworkInterface[]>([])
   const [selectedTarget, setSelectedTarget] = useState<string>('')
   const [customTarget, setCustomTarget] = useState<string>('')
   const [mode, setMode] = useState<'auto' | 'custom'>('auto')
@@ -44,8 +45,9 @@ export function NetworkScan() {
 
   const navigate = useNavigate()
 
-  const handleAddServer = (host: any): void => {
-    navigate('/servers', { state: { host: host.ip, port: host.port.toString() } })
+  const handleAddServer = (host: ScanResult): void => {
+    const ip = host.host // Assuming scan result host is the IP
+    navigate('/servers', { state: { host: ip, port: host.port.toString() } })
   }
 
   return (
@@ -86,7 +88,7 @@ export function NetworkScan() {
                   value={selectedTarget}
                   onChange={(e) => setSelectedTarget(e.target.value)}
                 >
-                  {interfaces.map((iface) => (
+                  {interfaces.map((iface: NetworkInterface) => (
                     <option key={iface.name} value={iface.subnet}>
                       {iface.name} - {iface.address} ({iface.subnet})
                     </option>
@@ -124,13 +126,13 @@ export function NetworkScan() {
                 No servers detected yet.
               </div>
             )}
-            {networkHosts.map((host, i) => (
+            {networkHosts.map((host: ScanResult, i: number) => (
               <div
                 key={i}
                 className="flex items-center justify-between border border-transparent hover:border-border p-3 rounded-md bg-card shadow-sm"
               >
                 <div>
-                  <div className="font-medium font-mono">{host.ip}</div>
+                  <div className="font-medium font-mono">{host.host}</div>
                   <div className="text-xs text-green-500">Port {host.port} Open</div>
                 </div>
                 <Button size="sm" variant="outline" onClick={() => handleAddServer(host)}>

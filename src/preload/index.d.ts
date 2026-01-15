@@ -18,25 +18,16 @@ declare global {
         ) => Promise<string>
       }
       network: {
-        scan: (target?: string) => Promise<any[]>
-        getInterfaces: () => Promise<
-          {
-            name: string
-            address: string
-            family: string
-            mac: string
-            internal: boolean
-            subnet: string
-          }[]
-        >
+        scan: (target?: string) => Promise<import('../main/types').ScanResult[]>
+        getInterfaces: () => Promise<import('../main/types').NetworkInterface[]>
       }
       github: {
-        listRepos: (limit?: number) => Promise<any[]>
+        listRepos: (limit?: number) => Promise<import('../main/types').GitHubRepo[]>
         checkVersion: () => Promise<boolean>
         install: () => Promise<void>
         isLogged: () => Promise<boolean>
         login: () => Promise<void>
-        stats: () => Promise<any>
+        stats: () => Promise<import('../main/types').GitHubStats>
         getEnvironments: (repoName: string) => Promise<string[]>
       }
       deployment: {

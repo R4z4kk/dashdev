@@ -25,7 +25,8 @@ const api = {
     getEnvironments: (repoName: string) => ipcRenderer.invoke('github:environments', repoName)
   },
   deployment: {
-    deploy: (config: any) => ipcRenderer.invoke('deployment:deploy', config)
+    deploy: (config: import('../main/deployment').DeploymentConfig) =>
+      ipcRenderer.invoke('deployment:deploy', config)
   }
 }
 
