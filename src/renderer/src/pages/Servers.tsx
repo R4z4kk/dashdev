@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
@@ -22,6 +22,7 @@ export function Servers() {
   })
 
   const location = useLocation()
+  const navigate = useNavigate()
 
   // Initialize state from navigation if available
   const [newServer, setNewServer] = useState<Partial<Server>>(() => {
@@ -207,7 +208,7 @@ export function Servers() {
                       ? 'border-primary bg-primary/5'
                       : 'bg-card hover:border-primary/50'
                   )}
-                  onClick={() => handleEditStart(s)}
+                  onClick={() => navigate(`/servers/${s.id}`)}
                 >
                   <div className="flex flex-col">
                     <span className="font-bold flex items-center gap-2">
