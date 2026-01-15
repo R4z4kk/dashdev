@@ -144,14 +144,15 @@ function DeployModal({ repoName, onClose, onDeploy }: DeployModalProps) {
             <div className="flex justify-between items-center">
               <label className="text-sm font-medium">Launch Command</label>
               <Button
-                variant={isDirty ? "default" : "ghost"}
+                variant={isDirty ? 'default' : 'ghost'}
                 size="sm"
-                className={`h-6 text-xs px-3 ${isSaved
+                className={`h-6 text-xs px-3 ${
+                  isSaved
                     ? 'bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800'
                     : isDirty
                       ? ''
                       : 'text-muted-foreground'
-                  }`}
+                }`}
                 onClick={saveConfig}
               >
                 {isSaved ? 'Saved' : 'Save'}
@@ -302,7 +303,11 @@ export function Repos() {
                   <ExternalLink className="w-3 h-3 mr-2" />
                   View
                 </Button>
-                <Button size="sm" className="flex-1" onClick={() => setDeployRepo(repo.nameWithOwner)}>
+                <Button
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setDeployRepo(repo.nameWithOwner)}
+                >
                   <Rocket className="w-3 h-3 mr-2" />
                   Deploy
                 </Button>

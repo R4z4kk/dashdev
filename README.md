@@ -18,19 +18,21 @@ DashDev is a powerful Electron-based dashboard designed to streamline your devel
 - **Deployment History**: specific log of all deployment attempts, tracking both successes and failures.
 - **Customizable UI**: Personalize your experience with Light/Dark mode and custom primary colors.
 
-
 ## Installation (For Users)
 
 If you just want to use the application, you can build the executable for your operating system.
 
 ### Prerequisites
+
 - **Node.js** (Latest LTS)
 - **GitHub CLI (`gh`)**: Required for authentication.
   - [Install GitHub CLI](https://cli.github.com/manual/installation)
   - Run `gh auth login` setup.
 
 ### Build & Run
+
 First, clone the repository and install dependencies:
+
 ```bash
 git clone https://github.com/your-username/dashdev.git
 cd dashdev
@@ -40,21 +42,27 @@ npm install
 Then, generate the application for your system:
 
 #### Windows
+
 ```bash
 npm run build:win
 ```
+
 The executable will be available in the `dist` folder.
 
 #### macOS
+
 ```bash
 npm run build:mac
 ```
+
 The `.dmg` or `.app` file will be available in the `dist` folder.
 
 #### Linux
+
 ```bash
 npm run build:linux
 ```
+
 The AppImage or package will be available in the `dist` folder.
 
 ## Installation (For Developers)
@@ -62,6 +70,7 @@ The AppImage or package will be available in the `dist` folder.
 If you want to contribute or modify the code, follow these steps to set up the development environment with hot-reloading.
 
 1.  **Clone & Install** (if not done already):
+
     ```bash
     git clone https://github.com/your-username/dashdev.git
     cd dashdev
@@ -76,28 +85,38 @@ If you want to contribute or modify the code, follow these steps to set up the d
 ## Usage Guide
 
 ### Authentication
+
 Upon launching the application, you will need to authenticate using the GitHub CLI. Ensure `gh` is installed and you are logged in on your system.
 
 ### Dashboard
+
 The main dashboard provides an overview of your projects and recent activities, giving you a quick snapshot of your development landscape.
 
 ### SSH Keys
+
 Navigate to the **SSH Keys** tab to manage your access credentials.
+
 - **Create a Key**: Generate a new SSH key pair. The private key is securely stored by the Electron application.
 - **Manual Setup**: After generating a key, you must manually add the public key to your target server's `~/.ssh/authorized_keys` file to enable passwordless authentication.
 
 ### Network Scanning
+
 Use the **Network Scanning** tab to discover servers on your local network.
+
 - **Scan**: Initiates a scan of the local IP range.
 - **Add Server**: Detected servers can be used to pre-fill the form in the "My Servers" tab, simplifying the setup process.
 
 ### My Servers
+
 The **My Servers** tab is your server inventory.
+
 - **Add Server**: Manually enter server details (IP, Hostname, User, etc.) if they weren't detected via scan.
 - **List**: View and manage all your added servers.
 
 ### Repositories
+
 The **Repositories** tab fetches your GitHub data using the GitHub CLI.
+
 - **View**: List all repositories (private and public) you have access to.
 - **Navigate**: Click to open the repository in your browser.
 - **Deploy**: Click the "Deploy" button to open the deployment configuration:
@@ -107,10 +126,13 @@ The **Repositories** tab fetches your GitHub data using the GitHub CLI.
   4.  Execute the deployment.
 
 ### Deployments
+
 Track your deployment history in the **Deployments** tab. This log provides a detailed record of all deployment attempts, helping you troubleshoot failures and confirm successes.
 
 ### Settings
+
 Customize the application look and feel in the **Settings** tab.
+
 - **Theme**: Toggle between Light Mode and Dark Mode.
 - **Primary Color**: Select a primary color to accent the UI according to your preference.
 

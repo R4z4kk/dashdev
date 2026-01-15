@@ -63,8 +63,8 @@ export class SSHManager {
   async deleteKey(name: string): Promise<void> {
     try {
       const keyPath = join(this.keyDir, name)
-      await unlink(keyPath).catch(() => { })
-      await unlink(`${keyPath}.pub`).catch(() => { })
+      await unlink(keyPath).catch(() => {})
+      await unlink(`${keyPath}.pub`).catch(() => {})
     } catch (error) {
       console.error('Delete failed', error)
       throw error

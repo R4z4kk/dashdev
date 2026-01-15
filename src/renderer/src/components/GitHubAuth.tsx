@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from './ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { AlertTriangle, Download, LogIn, CheckCircle2, Loader2 } from 'lucide-react'
@@ -14,11 +14,7 @@ export function GitHubAuth({ onAuthenticated }: GitHubAuthProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    checkStatus()
-  }, [])
-
-  const checkStatus = async () => {
+  const checkStatus = useCallback(async () => {
     try {
       const installed = await window.api.github.checkVersion()
       if (!installed) {
@@ -37,7 +33,11 @@ export function GitHubAuth({ onAuthenticated }: GitHubAuthProps) {
       console.error(e)
       setStatus('missing')
     }
-  }
+  }, [onAuthenticated])
+
+  useEffect(() => {
+    checkStatus()
+  }, [checkStatus])
 
   const handleInstall = async () => {
     setLoading(true)

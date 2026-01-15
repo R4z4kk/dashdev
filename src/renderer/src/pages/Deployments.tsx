@@ -45,9 +45,13 @@ const DeploymentItem = ({ deployment }: { deployment: Deployment }) => {
             className="text-xs h-8"
           >
             {isExpanded ? (
-              <>Hide logs <ChevronUp className="ml-1 w-3 h-3" /></>
+              <>
+                Hide logs <ChevronUp className="ml-1 w-3 h-3" />
+              </>
             ) : (
-              <>See logs <ChevronDown className="ml-1 w-3 h-3" /></>
+              <>
+                See logs <ChevronDown className="ml-1 w-3 h-3" />
+              </>
             )}
           </Button>
         </div>
