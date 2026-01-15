@@ -18,7 +18,17 @@ declare global {
         ) => Promise<string>
       }
       network: {
-        scan: () => Promise<any[]>
+        scan: (target?: string) => Promise<any[]>
+        getInterfaces: () => Promise<
+          {
+            name: string
+            address: string
+            family: string
+            mac: string
+            internal: boolean
+            subnet: string
+          }[]
+        >
       }
       github: {
         listRepos: (limit?: number) => Promise<any[]>

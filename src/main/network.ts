@@ -3,49 +3,58 @@ import { networkInterfaces } from 'os'
 const Evilscan = require('evilscan')
 
 export class NetworkScanner {
-  private getLocalSubnet(): string | null {
+  getInterfaces(): {
+    name: string
+    address: string
+    family: string
+    mac: string
+    internal: boolean
+    subnet: string
+  }[] {
     const nets = networkInterfaces()
-    // 1. Try to find 192.168.x.x or 10.x.x.x (typical local networks)
-    for (const name of Object.keys(nets)) {
-      const interfaces = nets[name]
-      if (interfaces) {
-        for (const net of interfaces) {
-          if (net.family === 'IPv4' && !net.internal) {
-            if (net.address.startsWith('192.168.') || net.address.startsWith('10.')) {
-              const parts = net.address.split('.')
-              parts.pop()
-              return parts.join('.') + '.0/24'
-            }
-          }
-        }
-      }
-    }
+    const results: any[] = []
 
-    // 2. Fallback to any non-internal IPv4
     for (const name of Object.keys(nets)) {
       const interfaces = nets[name]
       if (interfaces) {
         for (const net of interfaces) {
-          if (net.family === 'IPv4' && !net.internal) {
+          // Return all IPv4 interfaces so the user can see them
+          if (net.family === 'IPv4') {
             const parts = net.address.split('.')
             parts.pop()
-            return parts.join('.') + '.0/24'
+            const subnet = parts.join('.') + '.0/24'
+            results.push({
+              name,
+              address: net.address,
+              family: net.family,
+              mac: net.mac,
+              internal: net.internal,
+              subnet
+            })
           }
         }
       }
     }
-    return null
+    return results
   }
 
-  async scan(port: number = 22): Promise<any[]> {
-    const subnet = this.getLocalSubnet()
-    if (!subnet) {
-      console.warn('No local subnet found')
-      return []
+  async scan(target?: string, port: number = 22): Promise<any[]> {
+    if (!target) {
+      // Fallback to finding a likely candidate if no target provided
+      const interfaces = this.getInterfaces()
+      const candidate = interfaces.find(
+        (i) => !i.internal && (i.address.startsWith('192.168.') || i.address.startsWith('10.'))
+      )
+      if (candidate) {
+        target = candidate.subnet
+      } else {
+        // Fallback to first non-internal or local
+        target = interfaces.find((i) => !i.internal)?.subnet || '127.0.0.1/32'
+      }
     }
 
     const options = {
-      target: subnet,
+      target: target,
       port: port.toString(),
       status: 'O', // Open
       banner: true

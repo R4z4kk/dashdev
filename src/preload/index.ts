@@ -12,7 +12,8 @@ const api = {
       ipcRenderer.invoke('ssh:exec', host, port, username, keyName, command)
   },
   network: {
-    scan: () => ipcRenderer.invoke('network:scan')
+    scan: (target?: string) => ipcRenderer.invoke('network:scan', target),
+    getInterfaces: () => ipcRenderer.invoke('network:getInterfaces')
   },
   github: {
     listRepos: (limit?: number) => ipcRenderer.invoke('github:repos', limit),
