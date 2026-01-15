@@ -78,9 +78,10 @@ export function ServerDetails() {
         if (newHistory.length > 20) newHistory.shift() // Keep last 20 points
         return newHistory
       })
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
-      setError('Failed to fetch metrics: ' + (err.message || 'Unknown error'))
+      const message = err instanceof Error ? err.message : String(err)
+      setError('Failed to fetch metrics: ' + message)
     } finally {
       setLoading(false)
     }

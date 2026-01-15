@@ -108,9 +108,39 @@ export class SSHManager {
     try {
       const { stdout, stderr } = await execAsync(sshCmd)
       return stdout || stderr
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Return stderr/message if it fails, so frontend sees the error output
-      return error.stderr || error.message
+      const err = error as { stderr?: string; message?: string }
+      return err.stderr || err.message || 'Unknown error'
+    }
+  }
+
+  async copyToRemote(
+    host: string,
+    port: string,
+    username: string,
+    keyName: string,
+    localPath: string,
+    remotePath: string
+  ): Promise<void> {
+    const keyPath = join(this.keyDir, keyName).replace(/\\/g, '/')
+
+    // Safety check for key existence
+    try {
+      await readFile(keyPath)
+    } catch {
+      throw new Error(`Private key "${keyName}" not found.`)
+    }
+
+    // specific scp options
+    // -r: recursive
+    const scpCmd = `scp -i "${keyPath}" -P ${port} -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 -r "${localPath}" ${username}@${host}:"${remotePath}"`
+
+    try {
+      await execAsync(scpCmd)
+    } catch (error: unknown) {
+      const err = error as { stderr?: string; message?: string }
+      throw new Error(`SCP failed: ${err.stderr || err.message || 'Unknown error'}`)
     }
   }
 }

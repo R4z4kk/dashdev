@@ -3,25 +3,58 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Star, ExternalLink, Rocket, X } from 'lucide-react'
+import { GitHubRepo } from '../../../main/types'
+
+interface Server {
+  id: string
+  name: string
+  host: string
+  port: string
+  username: string
+  keyName: string
+}
 
 interface DeployModalProps {
   repoName: string
   onClose: () => void
-  onDeploy: (server: any, key: string, command: string) => Promise<void>
+  onDeploy: (server: Server, key: string, command: string, environment?: string) => Promise<void>
 }
 
 function DeployModal({ repoName, onClose, onDeploy }: DeployModalProps) {
-  const [servers] = useState<any[]>(() => {
+  const [servers] = useState<Server[]>(() => {
     return JSON.parse(localStorage.getItem('dashdev_servers') || '[]')
   })
   const [selectedServer, setSelectedServer] = useState(() => {
     const s = JSON.parse(localStorage.getItem('dashdev_servers') || '[]')
     return s.length > 0 ? s[0].id : ''
   })
-  const [command, setCommand] = useState(
-    'cd /var/www/app && git pull && npm install && npm run build && pm2 restart app'
-  )
+
+  // Initialize command from local storage for this specific repo
+  const [command, setCommand] = useState(() => {
+    try {
+      const configs = JSON.parse(localStorage.getItem('dashdev_repo_configs') || '{}')
+      return configs[repoName]?.command || ''
+    } catch {
+      return ''
+    }
+  })
+
+  // Track key to determine distinct saved state
+  const [savedCommand, setSavedCommand] = useState(() => {
+    try {
+      const configs = JSON.parse(localStorage.getItem('dashdev_repo_configs') || '{}')
+      return configs[repoName]?.command || ''
+    } catch {
+      return ''
+    }
+  })
+
   const [loading, setLoading] = useState(false)
+  const [environments, setEnvironments] = useState<string[]>([])
+  const [selectedEnv, setSelectedEnv] = useState<string>('')
+  const [isSaved, setIsSaved] = useState(false)
+
+  const isDirty = command !== savedCommand
 
   // Auto-select first server if none selected
   useEffect(() => {
@@ -31,13 +64,43 @@ function DeployModal({ repoName, onClose, onDeploy }: DeployModalProps) {
     }
   }, [servers, selectedServer])
 
+  // Fetch environments
+  useEffect(() => {
+    const fetchEnvs = async () => {
+      try {
+        const envs = await window.api.github.getEnvironments(repoName)
+        setEnvironments(envs)
+        if (envs.length > 0) setSelectedEnv(envs[0])
+      } catch (e) {
+        console.error('Failed to fetch environments', e)
+      }
+    }
+    fetchEnvs()
+  }, [repoName])
+
+  const saveConfig = () => {
+    try {
+      const configs = JSON.parse(localStorage.getItem('dashdev_repo_configs') || '{}')
+      configs[repoName] = { ...configs[repoName], command }
+      localStorage.setItem('dashdev_repo_configs', JSON.stringify(configs))
+      setSavedCommand(command)
+      setIsSaved(true)
+      setTimeout(() => setIsSaved(false), 2000)
+    } catch (error) {
+      console.error('Failed to save config', error)
+    }
+  }
+
   const handleDeploy = async () => {
     setLoading(true)
     const s = servers.find((srv) => srv.id === selectedServer)
     if (!s) return
 
+    // Save configuration before deploying
+    saveConfig()
+
     // Use the key associated with the server
-    await onDeploy(s, s.keyName || '', command)
+    await onDeploy(s, s.keyName || '', command, selectedEnv)
     setLoading(false)
     onClose()
   }
@@ -62,7 +125,7 @@ function DeployModal({ repoName, onClose, onDeploy }: DeployModalProps) {
               value={selectedServer}
               onChange={(e) => setSelectedServer(e.target.value)}
             >
-              {servers.map((s) => (
+              {servers.map((s: Server) => (
                 <option key={s.id} value={s.id}>
                   {s.name} ({s.host})
                 </option>
@@ -70,12 +133,46 @@ function DeployModal({ repoName, onClose, onDeploy }: DeployModalProps) {
             </select>
           </div>
 
+          {environments.length > 0 && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Environment</label>
+              <select
+                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={selectedEnv}
+                onChange={(e) => setSelectedEnv(e.target.value)}
+              >
+                {environments.map((env) => (
+                  <option key={env} value={env}>
+                    {env}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="space-y-2">
-            <label className="text-sm font-medium">Launch Command</label>
+            <div className="flex justify-between items-center">
+              <label className="text-sm font-medium">Launch Command</label>
+              <Button
+                variant={isDirty ? 'default' : 'ghost'}
+                size="sm"
+                className={`h-6 text-xs px-3 ${
+                  isSaved
+                    ? 'bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800'
+                    : isDirty
+                      ? ''
+                      : 'text-muted-foreground'
+                }`}
+                onClick={saveConfig}
+              >
+                {isSaved ? 'Saved' : 'Save'}
+              </Button>
+            </div>
             <textarea
-              className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
+              className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-ring"
               value={command}
               onChange={(e) => setCommand(e.target.value)}
+              placeholder="e.g. docker compose up -d"
             />
           </div>
 
@@ -93,7 +190,7 @@ function DeployModal({ repoName, onClose, onDeploy }: DeployModalProps) {
 }
 
 export function Repos() {
-  const [repos, setRepos] = useState<any[]>([])
+  const [repos, setRepos] = useState<GitHubRepo[]>([])
   const [search, setSearch] = useState('')
   const [deployRepo, setDeployRepo] = useState<string | null>(null)
 
@@ -109,7 +206,12 @@ export function Repos() {
     loadRepos()
   }, [])
 
-  const handleDeployAction = async (server: any, key: string, command: string) => {
+  const handleDeployAction = async (
+    server: Server,
+    key: string,
+    command: string,
+    environment?: string
+  ) => {
     if (!deployRepo) return
 
     // Create record
@@ -119,34 +221,45 @@ export function Repos() {
       repo: deployRepo,
       server: server.name || server.host,
       command: command,
+      environment: environment || '',
       status: 'pending',
       output: '',
       timestamp: new Date().toISOString()
     }
 
     // Optimistic save
-    const save = (r: any) => {
+    const save = (r: {
+      id: string
+      repo: string
+      server: string
+      command: string
+      environment: string
+      status: string
+      output: string
+      timestamp: string
+    }) => {
       const list = JSON.parse(localStorage.getItem('dashdev_deployments') || '[]')
       localStorage.setItem('dashdev_deployments', JSON.stringify([...list, r]))
     }
 
     try {
-      const output = await window.api.ssh.exec(
-        server.host,
-        server.port,
-        server.username,
-        key,
-        command
-      )
-      // Check if output implies error? usually exit code is better but exec returns stdout/stderr string.
-      // We'll assume if exec throws it's error, if it returns string it's "success" (even if stderr is content, often warnings).
-      // But ssh.ts returns stdout || stderr.
-      // We will mark as success for now.
+      const output = await window.api.deployment.deploy({
+        repoName: deployRepo,
+        server: {
+          host: server.host,
+          port: server.port,
+          username: server.username,
+          keyName: key
+        },
+        command,
+        environment
+      })
 
       save({ ...record, status: 'success', output })
       alert('Deployment finished successfully!')
-    } catch (e: any) {
-      save({ ...record, status: 'failed', output: e.message || String(e) })
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e)
+      save({ ...record, status: 'failed', output: message })
       alert('Deployment failed. Check Deployments tab.')
     }
   }
@@ -175,7 +288,7 @@ export function Repos() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((repo) => (
+        {filtered.map((repo: GitHubRepo) => (
           <Card key={repo.name} className="flex flex-col">
             <CardHeader>
               <CardTitle className="flex justify-between items-start gap-2">
@@ -210,7 +323,11 @@ export function Repos() {
                   <ExternalLink className="w-3 h-3 mr-2" />
                   View
                 </Button>
-                <Button size="sm" className="flex-1" onClick={() => setDeployRepo(repo.name)}>
+                <Button
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setDeployRepo(repo.nameWithOwner)}
+                >
                   <Rocket className="w-3 h-3 mr-2" />
                   Deploy
                 </Button>

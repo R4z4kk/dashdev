@@ -5,6 +5,7 @@ import icon from '../../resources/icon.png?asset'
 import { SSHManager } from './ssh'
 import { NetworkScanner } from './network'
 import { GitHubManager } from './github'
+import { DeploymentManager } from './deployment'
 
 function createWindow(): void {
   // Create the browser window.
@@ -111,6 +112,15 @@ app.whenReady().then(() => {
 
   ipcMain.handle('github:stats', async () => {
     return await github.getDashboardStats()
+  })
+
+  ipcMain.handle('github:environments', async (_, repoName) => {
+    return await github.getRepoEnvironments(repoName)
+  })
+
+  const deployment = new DeploymentManager()
+  ipcMain.handle('deployment:deploy', async (_, config) => {
+    return await deployment.deploy(config)
   })
 
   createWindow()

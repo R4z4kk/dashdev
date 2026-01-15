@@ -1,18 +1,12 @@
 import { networkInterfaces } from 'os'
+import { NetworkInterface, ScanResult } from './types'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const Evilscan = require('evilscan')
 
 export class NetworkScanner {
-  getInterfaces(): {
-    name: string
-    address: string
-    family: string
-    mac: string
-    internal: boolean
-    subnet: string
-  }[] {
+  getInterfaces(): NetworkInterface[] {
     const nets = networkInterfaces()
-    const results: any[] = []
+    const results: NetworkInterface[] = []
 
     for (const name of Object.keys(nets)) {
       const interfaces = nets[name]
@@ -38,7 +32,7 @@ export class NetworkScanner {
     return results
   }
 
-  async scan(target?: string, port: number = 22): Promise<any[]> {
+  async scan(target?: string, port: number = 22): Promise<ScanResult[]> {
     if (!target) {
       // Fallback to finding a likely candidate if no target provided
       const interfaces = this.getInterfaces()
@@ -62,13 +56,13 @@ export class NetworkScanner {
 
     return new Promise((resolve, reject) => {
       const scanner = new Evilscan(options)
-      const results: any[] = []
+      const results: ScanResult[] = []
 
-      scanner.on('result', (data) => {
+      scanner.on('result', (data: ScanResult) => {
         results.push(data)
       })
 
-      scanner.on('error', (err) => {
+      scanner.on('error', (err: Error) => {
         console.error('Scan error:', err)
         reject(err)
       })
