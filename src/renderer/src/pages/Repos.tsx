@@ -18,13 +18,33 @@ function DeployModal({ repoName, onClose, onDeploy }: DeployModalProps) {
     const s = JSON.parse(localStorage.getItem('dashdev_servers') || '[]')
     return s.length > 0 ? s[0].id : ''
   })
-  // const [command, setCommand] = useState(
-  //   'cd /var/www/app && git pull && npm install && npm run build && pm2 restart app'
-  // )
-  const [command, setCommand] = useState('docker compose up -d')
+
+  // Initialize command from local storage for this specific repo
+  const [command, setCommand] = useState(() => {
+    try {
+      const configs = JSON.parse(localStorage.getItem('dashdev_repo_configs') || '{}')
+      return configs[repoName]?.command || ''
+    } catch {
+      return ''
+    }
+  })
+
+  // Track key to determine distinct saved state
+  const [savedCommand, setSavedCommand] = useState(() => {
+    try {
+      const configs = JSON.parse(localStorage.getItem('dashdev_repo_configs') || '{}')
+      return configs[repoName]?.command || ''
+    } catch {
+      return ''
+    }
+  })
+
   const [loading, setLoading] = useState(false)
   const [environments, setEnvironments] = useState<string[]>([])
   const [selectedEnv, setSelectedEnv] = useState<string>('')
+  const [isSaved, setIsSaved] = useState(false)
+
+  const isDirty = command !== savedCommand
 
   // Auto-select first server if none selected
   useEffect(() => {
@@ -48,10 +68,26 @@ function DeployModal({ repoName, onClose, onDeploy }: DeployModalProps) {
     fetchEnvs()
   }, [repoName])
 
+  const saveConfig = () => {
+    try {
+      const configs = JSON.parse(localStorage.getItem('dashdev_repo_configs') || '{}')
+      configs[repoName] = { ...configs[repoName], command }
+      localStorage.setItem('dashdev_repo_configs', JSON.stringify(configs))
+      setSavedCommand(command)
+      setIsSaved(true)
+      setTimeout(() => setIsSaved(false), 2000)
+    } catch (error) {
+      console.error('Failed to save config', error)
+    }
+  }
+
   const handleDeploy = async () => {
     setLoading(true)
     const s = servers.find((srv) => srv.id === selectedServer)
     if (!s) return
+
+    // Save configuration before deploying
+    saveConfig()
 
     // Use the key associated with the server
     await onDeploy(s, s.keyName || '', command, selectedEnv)
@@ -105,11 +141,27 @@ function DeployModal({ repoName, onClose, onDeploy }: DeployModalProps) {
           )}
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Launch Command</label>
+            <div className="flex justify-between items-center">
+              <label className="text-sm font-medium">Launch Command</label>
+              <Button
+                variant={isDirty ? "default" : "ghost"}
+                size="sm"
+                className={`h-6 text-xs px-3 ${isSaved
+                    ? 'bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800'
+                    : isDirty
+                      ? ''
+                      : 'text-muted-foreground'
+                  }`}
+                onClick={saveConfig}
+              >
+                {isSaved ? 'Saved' : 'Save'}
+              </Button>
+            </div>
             <textarea
-              className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
+              className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-ring"
               value={command}
               onChange={(e) => setCommand(e.target.value)}
+              placeholder="e.g. docker compose up -d"
             />
           </div>
 
