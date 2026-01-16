@@ -1,0 +1,51 @@
+name: Build/Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Lint & Typecheck
+        run: |
+          npm run lint
+          npm run typecheck
+
+      - name: Build Application
+        run: npm run build
+
+      - name: Publish Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx electron-builder --publish always
+
+      - name: Build Artifacts (on push)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: |
+          npx electron-builder --publish never
