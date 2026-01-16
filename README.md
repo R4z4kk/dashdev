@@ -26,7 +26,7 @@ If you just want to use the application, you can build the executable for your o
 
 - **Node.js** (Latest LTS)
 - **GitHub CLI (`gh`)**: Required for authentication.
-  - [Install GitHub CLI](https://cli.github.com/manual/installation)
+  - [Install GitHub CLI](https://cli.github.com/)
   - Run `gh auth login` setup.
 
 ### Build & Run
