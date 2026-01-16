@@ -20,50 +20,41 @@ DashDev is a powerful Electron-based dashboard designed to streamline your devel
 
 ## Installation (For Users)
 
-If you just want to use the application, you can build the executable for your operating system.
+You can download the latest pre-built version of the application directly from the **Releases** section of this repository.
 
 ### Prerequisites
 
-- **Node.js** (Latest LTS)
-- **GitHub CLI (`gh`)**: Required for authentication.
+- **GitHub CLI (`gh`)**: Required for authentication and full functionality.
   - [Install GitHub CLI](https://cli.github.com/)
-  - Run `gh auth login` setup.
+  - Run `gh auth login` to authenticate.
 
-### Build & Run
-
-First, clone the repository and install dependencies:
-
-```bash
-git clone https://github.com/your-username/dashdev.git
-cd dashdev
-npm install
-```
-
-Then, generate the application for your system:
+### Install & Run
 
 #### Windows
-
-```bash
-npm run build:win
-```
-
-The executable will be available in the `dist` folder.
+1. Download the `.exe` installer from the latest release.
+2. Run the installer and follow the instructions.
 
 #### macOS
-
-```bash
-npm run build:mac
-```
-
-The `.dmg` or `.app` file will be available in the `dist` folder.
+1. Download the `.dmg` file from the latest release.
+2. Open the file and move "DashDev" to your Applications folder.
 
 #### Linux
+You can choose between `.deb` (Debian/Ubuntu) or `.AppImage` (Universal).
 
-```bash
-npm run build:linux
-```
+**Using .deb:**
+1. Download the `.deb` package.
+2. Install it using `dpkg` or your system's package manager:
+   ```bash
+   sudo dpkg -i dashdev_v1.0.0_amd64.deb
+   ```
 
-The AppImage or package will be available in the `dist` folder.
+**Using .AppImage:**
+1. Download the `.AppImage` file.
+2. Make it executable:
+   ```bash
+   chmod +x DashDev-version.AppImage
+   ```
+3. Run the file.
 
 ## Installation (For Developers)
 
